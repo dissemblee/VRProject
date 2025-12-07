@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections;
 
 public class DeliveryPoint : MonoBehaviour
 {
@@ -7,7 +6,6 @@ public class DeliveryPoint : MonoBehaviour
     public GameObject highlightObject;
     public GameObject completeEffect;
     public Vector3 packagePosition = new Vector3(0, 0.5f, 0);
-    public float deliveryDelay = 1f;
     
     [Header("Sound Settings")]
     public AudioClip deliverySound;
@@ -31,19 +29,33 @@ public class DeliveryPoint : MonoBehaviour
         if (isProcessing) return;
         
         Package package = other.GetComponent<Package>();
-        if (package != null) ProcessDelivery(package);
+        if (package != null)
+        {
+            ProcessDelivery(package);
+        }
     }
     
     void ProcessDelivery(Package package)
     {
+        if (OrderManager.Instance == null || OrderManager.Instance.activeOrders.Count == 0)
+            return;
+        
         isProcessing = true;
         currentPackage = package;
         
+        DisablePackagePhysics(package);
+        AttachPackage(package);
+        
+        CheckDelivery();
+    }
+    
+    void DisablePackagePhysics(Package package)
+    {
         Grabable grabable = package.GetComponent<Grabable>();
-
         if (grabable != null) grabable.enabled = false;
         
         package.SetGrabbed(false);
+        
         Rigidbody packageRb = package.GetComponent<Rigidbody>();
         if (packageRb != null)
         {
@@ -54,52 +66,41 @@ public class DeliveryPoint : MonoBehaviour
         
         Collider packageCol = package.GetComponent<Collider>();
         if (packageCol != null) packageCol.enabled = false;
-        
-        package.transform.SetParent(transform);
-        
-        package.transform.localPosition = packagePosition;
-        package.transform.localRotation = Quaternion.identity;
-        
-        StartCoroutine(DeliveryCheckCoroutine());
     }
     
-    IEnumerator DeliveryCheckCoroutine()
+    void AttachPackage(Package package)
     {
-        yield return new WaitForSeconds(0.5f);
-        
-        CheckDelivery();
+        package.transform.SetParent(transform);
+        package.transform.localPosition = packagePosition;
+        package.transform.localRotation = Quaternion.identity;
     }
     
     void CheckDelivery()
     {
-        if (currentPackage == null)
+        if (currentPackage == null || OrderManager.Instance.activeOrders.Count == 0)
         {
             isProcessing = false;
             return;
         }
         
-        if (OrderManager.Instance == null || !OrderManager.Instance.hasActiveOrder)
-        {
-            ResetPackage();
-            return;
-        }
-        
         int burgersInPackage = currentPackage.GetCurrentCount();
-        int requiredBurgers = OrderManager.Instance.currentOrderBurgers;
         
-        if (currentPackage.IsFull() && burgersInPackage == requiredBurgers)
+        foreach (var order in OrderManager.Instance.activeOrders)
         {
-            StartCoroutine(CompleteDeliveryCoroutine());
+            if (currentPackage.IsFull() && burgersInPackage == order.burgerCount)
+            {
+                CompleteDelivery(order.orderNumber);
+                return;
+            }
         }
-        else
-        {
-            FailedDelivery();
-        }
+        
+        FailedDelivery();
     }
     
-    IEnumerator CompleteDeliveryCoroutine()
+    void CompleteDelivery(int orderNumber)
     {
-        if (audioSource != null && deliverySound != null) audioSource.PlayOneShot(deliverySound);
+        if (audioSource != null && deliverySound != null)
+            audioSource.PlayOneShot(deliverySound);
         
         if (completeEffect != null)
         {
@@ -109,11 +110,10 @@ public class DeliveryPoint : MonoBehaviour
             Destroy(effect, 2f);
         }
         
-        OrderManager.Instance.CompleteCurrentOrder(Time.time);
+        OrderManager.Instance.CompleteOrder(orderNumber);
         
-        yield return new WaitForSeconds(deliveryDelay);
-        
-        if (currentPackage != null) Destroy(currentPackage.gameObject);
+        if (currentPackage != null)
+            Destroy(currentPackage.gameObject);
         
         isProcessing = false;
         currentPackage = null;
@@ -121,19 +121,13 @@ public class DeliveryPoint : MonoBehaviour
     
     void FailedDelivery()
     {
-        if (audioSource != null && wrongDeliverySound != null) audioSource.PlayOneShot(wrongDeliverySound);
+        if (audioSource != null && wrongDeliverySound != null)
+            audioSource.PlayOneShot(wrongDeliverySound);
         
-        StartCoroutine(ReturnPackageCoroutine());
+        ReturnPackage();
     }
     
-    IEnumerator ReturnPackageCoroutine()
-    {
-        yield return new WaitForSeconds(1f);
-        
-        ResetPackage();
-    }
-    
-    void ResetPackage()
+    void ReturnPackage()
     {
         if (currentPackage != null)
         {
@@ -157,18 +151,5 @@ public class DeliveryPoint : MonoBehaviour
         
         isProcessing = false;
         currentPackage = null;
-    }
-    
-    void OnDrawGizmos()
-    {
-        Gizmos.color = new Color(0, 1, 0, 0.5f);
-        Gizmos.DrawWireCube(transform.position + packagePosition, new Vector3(0.5f, 0.1f, 0.5f));
-        
-        Collider col = GetComponent<Collider>();
-        if (col != null)
-        {
-            Gizmos.color = new Color(1, 0.5f, 0, 0.3f);
-            Gizmos.DrawCube(transform.position, col.bounds.size);
-        }
     }
 }

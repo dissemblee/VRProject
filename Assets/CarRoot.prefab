@@ -45,10 +45,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9030e7f2f492e814fb69ef4ebfd27f27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CarWaypointMovementClean
-  speed: 5
+  speed: 20
   rotationSpeed: 100
   stopDistance: 0.2
-  safeDistance: 1.5
+  safeDistance: 10
+  orderWaypoint: {fileID: 2947913594973638511, guid: a554b806eeb260e418ca21aa8d62db01, type: 3}
+  orderStopDuration: 3
+  orderSignal: {fileID: 0}
   currentWaypoint: 0
   rotationOffsetEuler: {x: 0, y: -90, z: 0}
 --- !u!1001 &5411019611024011288

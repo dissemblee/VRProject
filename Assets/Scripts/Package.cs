@@ -28,9 +28,11 @@ public class Package : MonoBehaviour
     private Rigidbody rb;
     private bool isFull = false;
     private Collider col;
+    
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        col = GetComponent<Collider>();
         
         if (rb != null)
         {
@@ -47,7 +49,7 @@ public class Package : MonoBehaviour
             
         if (emptyMaterial != null && packageRenderer != null) packageRenderer.material = emptyMaterial;
             
-        if (useGlobalCapacity && OrderManager.Instance != null) maxCapacity = OrderManager.Instance.currentOrderBurgers;
+        if (useGlobalCapacity && OrderManager.Instance != null) maxCapacity = OrderManager.Instance.GetCurrentOrderBurgers();
             
         UpdateVisuals();
     }
@@ -103,9 +105,7 @@ public class Package : MonoBehaviour
     {
         if (isFull)
         {
-            
             if (audioSource != null && fullSound != null) audioSource.PlayOneShot(fullSound);
-
             return;
         }
 
@@ -113,7 +113,8 @@ public class Package : MonoBehaviour
         
         Destroy(burger);
         
-        if (audioSource != null && collectSound != null) audioSource.PlayOneShot(collectSound);
+        if (audioSource != null && collectSound != null) 
+            audioSource.PlayOneShot(collectSound);
 
         if (burgerCount >= maxCapacity) isFull = true;
 
@@ -123,7 +124,7 @@ public class Package : MonoBehaviour
     public void SetMaxCapacity(int newCapacity)
     {
         maxCapacity = newCapacity;
-
+        
         if (burgerCount >= maxCapacity)
         {
             isFull = true;
@@ -164,7 +165,6 @@ public class Package : MonoBehaviour
     {
         burgerCount = 0;
         isFull = false;
-        
         UpdateVisuals();
     }
 }

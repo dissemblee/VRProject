@@ -15,46 +15,23 @@ public class Grabable : MonoBehaviour
         package = GetComponent<Package>();
         rb = GetComponent<Rigidbody>();
 
-        // if (rb != null)
-        //    rb.isKinematic = true;
-
-        if (mainCamera == null)
-            mainCamera = Camera.main;
+        if (mainCamera == null) mainCamera = Camera.main;
     }
 
     private void Update()
     {
-        if (mainCamera == null)
-            return;
+        if (mainCamera == null) return;
 
         HandleMouseInput();
 
-        if (isGrabbed)
-        {
-            FollowMouse();
-        }
+        if (isGrabbed) FollowMouse();
     }
 
     private void HandleMouseInput()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            TryPickUp();
-        }
+        if (Input.GetMouseButtonDown(0)) TryPickUp();
 
-        if (Input.GetMouseButtonUp(0) && isGrabbed)
-        {
-            Drop();
-        }
-
-        // if (isGrabbed)
-        // {
-        //     FollowMouse();
-        //     if (ingredient != null)
-        //         ingredient.SetGrabbed(true);
-        //     if (package != null)
-        //         package.SetGrabbed(true);
-        // }
+        if (Input.GetMouseButtonUp(0) && isGrabbed) Drop();
     }
 
     private void TryPickUp()
@@ -71,12 +48,6 @@ public class Grabable : MonoBehaviour
                     ingredient.SetGrabbed(true);
                 if (package != null)
                     package.SetGrabbed(true);
-                    
-                // if (rb != null)
-                // {
-                //     rb.isKinematic = true;
-                //     rb.useGravity = false;
-                // }
             }
         }
     }
@@ -84,12 +55,6 @@ public class Grabable : MonoBehaviour
     private void FollowMouse()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-
-        // if (Physics.Raycast(ray, out RaycastHit hit, 5f))
-        // {
-        //     Vector3 targetPosition = hit.point + Vector3.up * 0.1f;
-        //     transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 10f);
-        // }
 
         if (Physics.Raycast(ray, out RaycastHit hit, 10f))
         {
@@ -114,11 +79,5 @@ public class Grabable : MonoBehaviour
             ingredient.SetGrabbed(false);
         if (package != null)
             package.SetGrabbed(false);
-            
-        // if (rb != null)
-        // {
-        //     rb.isKinematic = false;
-        //     rb.useGravity = true;
-        // }
     }
 }

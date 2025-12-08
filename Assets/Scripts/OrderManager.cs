@@ -4,27 +4,35 @@ using System.Collections.Generic;
 public class OrderManager : MonoBehaviour
 {
     public static OrderManager Instance { get; private set; }
+    public System.Action<int> OnOrderReadyForPickup;
+    public System.Action<int> OnOrderAccepted;
     
     [Header("Order Settings")]
     public int minBurgersPerOrder = 1;
     public int maxBurgersPerOrder = 4;
-    public int timeBetweenOrders = 30;
     
-    [Header("Current Order")]
-    public int currentOrderBurgers = 1;
-    public bool hasActiveOrder = false;
-    public float orderTimer = 0f;
+    [Header("Current Orders")]
+    public List<ActiveOrder> activeOrders = new List<ActiveOrder>();
+    public List<PendingOrder> pendingOrders = new List<PendingOrder>();
     
-    [Header("Order History")]
-    public List<Order> orderHistory = new List<Order>();
+    public System.Action<int> OnOrderCompleted;
     
     [System.Serializable]
-    public class Order
+    public class ActiveOrder
     {
         public int orderNumber;
         public int burgerCount;
-        public bool isCompleted;
-        public float timeTaken;
+        public string source;
+        public float timeCreated;
+    }
+    
+    [System.Serializable]
+    public class PendingOrder
+    {
+        public int orderNumber;
+        public string carName;
+        public int burgerCount;
+        public float timeArrived;
     }
     
     private int orderCounter = 0;
@@ -41,41 +49,55 @@ public class OrderManager : MonoBehaviour
         }
     }
     
-    void Start()
+    public void CreateNewOrder(string source = "Unknown")
     {
-        CreateNewOrder();
+        CreatePendingOrder(source);
     }
     
-    void Update()
+    public int CreatePendingOrder(string carName)
     {
-        if (!hasActiveOrder)
+        if (pendingOrders.Count > 0 && pendingOrders.Exists(p => p.carName == carName))
         {
-            orderTimer += Time.deltaTime;
-            if (orderTimer >= timeBetweenOrders)
-            {
-                CreateNewOrder();
-                orderTimer = 0f;
-            }
+            return -1;
         }
-    }
-    
-    public void CreateNewOrder()
-    {
-        orderCounter++;
-        currentOrderBurgers = Random.Range(minBurgersPerOrder, maxBurgersPerOrder + 1);
-        hasActiveOrder = true;
         
-        Order newOrder = new Order
+        orderCounter++;
+        int burgerCount = Random.Range(minBurgersPerOrder, maxBurgersPerOrder + 1);
+        
+        PendingOrder pendingOrder = new PendingOrder
         {
             orderNumber = orderCounter,
-            burgerCount = currentOrderBurgers,
-            isCompleted = false,
-            timeTaken = 0f
+            carName = carName,
+            burgerCount = burgerCount,
+            timeArrived = Time.time
         };
         
-        orderHistory.Add(newOrder);
+        pendingOrders.Add(pendingOrder);
         
-        UpdateAllPackagesCapacity(currentOrderBurgers);
+        OnOrderReadyForPickup?.Invoke(orderCounter);
+        
+        return orderCounter;
+    }
+    
+    public void AcceptPendingOrder(int orderNumber)
+    {
+        PendingOrder pendingOrder = pendingOrders.Find(o => o.orderNumber == orderNumber);
+        if (pendingOrder != null)
+        {
+            ActiveOrder newOrder = new ActiveOrder
+            {
+                orderNumber = pendingOrder.orderNumber,
+                burgerCount = pendingOrder.burgerCount,
+                source = pendingOrder.carName,
+                timeCreated = Time.time
+            };
+            
+            activeOrders.Add(newOrder);
+            UpdateAllPackagesCapacity(pendingOrder.burgerCount);
+            pendingOrders.Remove(pendingOrder);
+            OnOrderAccepted?.Invoke(orderNumber);
+            
+        }
     }
     
     void UpdateAllPackagesCapacity(int newCapacity)
@@ -92,54 +114,55 @@ public class OrderManager : MonoBehaviour
         }
     }
     
-    public void CompleteOrder(int orderNumber, float completionTime)
+    public void CompleteOrder(int orderNumber)
     {
-        Order order = orderHistory.Find(o => o.orderNumber == orderNumber);
+        ActiveOrder order = activeOrders.Find(o => o.orderNumber == orderNumber);
         if (order != null)
         {
-            order.isCompleted = true;
-            order.timeTaken = completionTime;
-            hasActiveOrder = false;
-            
-            orderTimer = 0f;
+            activeOrders.Remove(order);
+            OnOrderCompleted?.Invoke(orderNumber);
         }
     }
     
-    public void CompleteCurrentOrder(float completionTime)
+    public bool HasActiveOrder()
     {
-        if (hasActiveOrder)
-        {
-            CompleteOrder(orderCounter, completionTime);
-        }
+        return activeOrders.Count > 0;
+    }
+    
+    public bool HasPendingOrderForCar(string carName)
+    {
+        return pendingOrders.Exists(p => p.carName == carName);
+    }
+    
+    public bool HasPendingOrders()
+    {
+        return pendingOrders.Count > 0;
     }
     
     public int GetCurrentOrderNumber()
     {
-        return orderCounter;
+        if (activeOrders.Count > 0)
+            return activeOrders[0].orderNumber;
+        
+        return -1;
     }
     
-    void OnGUI()
+    public int GetCurrentOrderBurgers()
     {
-        GUI.skin.label.fontSize = 20;
+        if (activeOrders.Count > 0)
+            return activeOrders[0].burgerCount;
         
-        if (hasActiveOrder)
-        {
-            GUI.Label(new Rect(10, 10, 300, 50), $"📋 ЗАКАЗ #{orderCounter}");
-            GUI.Label(new Rect(10, 40, 300, 50), $"🍔 Бургеров: {currentOrderBurgers}");
-            GUI.Label(new Rect(10, 70, 300, 50), $"⏱️ Таймер: {orderTimer:F0}/{timeBetweenOrders}с");
-        }
-        else
-        {
-            GUI.Label(new Rect(10, 10, 400, 50), "⏳ ОЖИДАНИЕ НОВОГО ЗАКАЗА...");
-            GUI.Label(new Rect(10, 40, 400, 50), $"Следующий через: {timeBetweenOrders - orderTimer:F0}с");
-        }
-        
-        int completedOrders = orderHistory.FindAll(o => o.isCompleted).Count;
-        GUI.Label(new Rect(Screen.width - 250, 10, 240, 50), $"📊 Завершено: {completedOrders}/{orderHistory.Count}");
+        return 0;
     }
     
-    public int GetActiveOrderCount()
+    public List<PendingOrder> GetPendingOrders()
     {
-        return orderHistory.FindAll(o => !o.isCompleted).Count;
+        return pendingOrders;
+    }
+    
+    public bool HasOrderForCar(string carName)
+    {
+        return activeOrders.Exists(o => o.source == carName) || 
+               pendingOrders.Exists(p => p.carName == carName);
     }
 }

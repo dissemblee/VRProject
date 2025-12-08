@@ -46,9 +46,5 @@ public class Burger : MonoBehaviour
             GameObject finalBurger = Instantiate(assembledBurgerPrefab, pos, rot);
             finalBurger.transform.SetParent(transform.parent);
         }
-        else
-        {
-            Debug.LogError("assembledBurgerPrefab is not assigned!");
-        }
     }
 }

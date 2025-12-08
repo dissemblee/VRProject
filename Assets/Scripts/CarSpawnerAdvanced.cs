@@ -10,6 +10,10 @@ public class CarSpawnerAdvanced : MonoBehaviour
     public float maxSpawnTime = 5f;
     public int maxCars = 4;
 
+    [Header("Order Settings")]
+    public Transform orderWaypoint;
+
+    [Header("Car Colors")]
     public Color[] possibleColors;
     [Range(0f, 1f)]
     public float repeatColorChance = 0.2f;
@@ -42,6 +46,7 @@ public class CarSpawnerAdvanced : MonoBehaviour
 
             CarWaypointMovementClean movement = car.GetComponent<CarWaypointMovementClean>();
             movement.SetWaypoints(waypoints);
+            movement.SetOrderWaypoint(orderWaypoint);
 
             Color carColor;
             if (Random.value < repeatColorChance)

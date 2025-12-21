@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 
 public class OrderManager : MonoBehaviour
 {
@@ -14,7 +15,12 @@ public class OrderManager : MonoBehaviour
     [Header("Current Orders")]
     public List<ActiveOrder> activeOrders = new List<ActiveOrder>();
     public List<PendingOrder> pendingOrders = new List<PendingOrder>();
-    
+
+    private CarSpawnerAdvanced carSpawner;
+
+    [Header("Event System")]
+    [SerializeField] private RandomEventSystem eventSystem;
+
     public System.Action<int> OnOrderCompleted;
     
     [System.Serializable]
@@ -33,10 +39,25 @@ public class OrderManager : MonoBehaviour
         public string carName;
         public int burgerCount;
         public float timeArrived;
+        public bool isSpecialCar;
     }
     
     private int orderCounter = 0;
-    
+    void Start()
+    {
+        carSpawner = FindObjectOfType<CarSpawnerAdvanced>();
+
+        if (carSpawner == null)
+        {
+            Debug.LogWarning("CarSpawnerAdvanced not found! Color checking will be disabled.");
+        }
+
+        if (eventSystem == null)
+        {
+            eventSystem = FindObjectOfType<RandomEventSystem>();
+        }
+    }
+
     void Awake()
     {
         if (Instance == null)
@@ -49,18 +70,13 @@ public class OrderManager : MonoBehaviour
         }
     }
     
-    public void CreateNewOrder(string source = "Unknown")
-    {
-        CreatePendingOrder(source);
-    }
-    
-    public int CreatePendingOrder(string carName)
+    public int CreatePendingOrder(string carName, bool isSpecialCar = false)
     {
         if (pendingOrders.Count > 0 && pendingOrders.Exists(p => p.carName == carName))
         {
             return -1;
         }
-        
+
         orderCounter++;
         int burgerCount = Random.Range(minBurgersPerOrder, maxBurgersPerOrder + 1);
         
@@ -69,14 +85,31 @@ public class OrderManager : MonoBehaviour
             orderNumber = orderCounter,
             carName = carName,
             burgerCount = burgerCount,
-            timeArrived = Time.time
+            timeArrived = Time.time,
+            isSpecialCar = isSpecialCar
         };
         
         pendingOrders.Add(pendingOrder);
         
         OnOrderReadyForPickup?.Invoke(orderCounter);
         
+        if (isSpecialCar)
+        {
+            StartCoroutine(SpecialCarTimer(pendingOrder));
+        }
+
         return orderCounter;
+    }
+
+    private IEnumerator SpecialCarTimer(PendingOrder pendingOrder)
+    {
+        yield return new WaitForSeconds(30f);
+        
+        if (eventSystem != null)
+        {
+            eventSystem.TriggerRandomEvent();
+            pendingOrders.Remove(pendingOrder);
+        }
     }
     
     public void AcceptPendingOrder(int orderNumber)
@@ -84,6 +117,21 @@ public class OrderManager : MonoBehaviour
         PendingOrder pendingOrder = pendingOrders.Find(o => o.orderNumber == orderNumber);
         if (pendingOrder != null)
         {
+            if (pendingOrder.isSpecialCar)
+            {
+                Debug.Log("🎯 Заказ от особой машины! Запуск события...");
+                RandomEventSystem eventSystem = FindObjectOfType<RandomEventSystem>();
+                if (eventSystem != null)
+                {
+                    eventSystem.TriggerRandomEvent();
+                }
+                
+                pendingOrders.Remove(pendingOrder);
+                
+                OnOrderAccepted?.Invoke(orderNumber);
+                return;
+            }
+            
             ActiveOrder newOrder = new ActiveOrder
             {
                 orderNumber = pendingOrder.orderNumber,
@@ -96,7 +144,6 @@ public class OrderManager : MonoBehaviour
             UpdateAllPackagesCapacity(pendingOrder.burgerCount);
             pendingOrders.Remove(pendingOrder);
             OnOrderAccepted?.Invoke(orderNumber);
-            
         }
     }
     

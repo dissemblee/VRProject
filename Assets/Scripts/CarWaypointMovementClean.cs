@@ -34,7 +34,7 @@ public class CarWaypointMovementClean : MonoBehaviour
     private float pathProgress = 0f;
     private Vector3 previousPosition;
     private float distanceTraveled = 0f;
-
+    [HideInInspector] public bool isSpecialCar = false;
     private void Awake()
     {
         rb = GetComponentInChildren<Rigidbody>();
@@ -305,7 +305,8 @@ public class CarWaypointMovementClean : MonoBehaviour
         
         if (OrderManager.Instance != null)
         {
-            currentOrderNumber = OrderManager.Instance.CreatePendingOrder(gameObject.name);
+            bool isSpecial = this.isSpecialCar;
+            currentOrderNumber = OrderManager.Instance.CreatePendingOrder(gameObject.name, isSpecial);
             
             if (currentOrderNumber != -1)
             {

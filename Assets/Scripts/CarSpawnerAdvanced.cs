@@ -20,6 +20,8 @@ public class CarSpawnerAdvanced : MonoBehaviour
 
     private List<GameObject> activeCars = new List<GameObject>();
     private Color lastColor;
+    private Color nextCarColor;
+    private bool isFirstCar = true;
 
     private void Start()
     {
@@ -36,7 +38,24 @@ public class CarSpawnerAdvanced : MonoBehaviour
             activeCars.RemoveAll(c => c == null);
             if (activeCars.Count >= maxCars) continue;
 
+            if (!isFirstCar && Random.value < repeatColorChance)
+            {
+                nextCarColor = lastColor;
+            }
+            else
+            {
+                nextCarColor = possibleColors[Random.Range(0, possibleColors.Length)];
+            }
+
             GameObject car = Instantiate(carPrefab, transform.position, transform.rotation);
+
+            CarWaypointMovementClean movement = car.GetComponent<CarWaypointMovementClean>();
+
+            if (!isFirstCar && ColorsAreSimilar(nextCarColor, lastColor))
+            {
+                movement.isSpecialCar = true;
+                Debug.Log("Создана особая машина: " + car.name);
+            }
 
             Transform[] waypoints = new Transform[waypointsContainer.childCount];
             for (int i = 0; i < waypointsContainer.childCount; i++)
@@ -44,20 +63,8 @@ public class CarSpawnerAdvanced : MonoBehaviour
                 waypoints[i] = waypointsContainer.GetChild(i);
             }
 
-            CarWaypointMovementClean movement = car.GetComponent<CarWaypointMovementClean>();
             movement.SetWaypoints(waypoints);
             movement.SetOrderWaypoint(orderWaypoint);
-
-            Color carColor;
-            if (Random.value < repeatColorChance)
-            {
-                carColor = lastColor;
-            }
-            else
-            {
-                carColor = possibleColors[Random.Range(0, possibleColors.Length)];
-            }
-            lastColor = carColor;
 
             foreach (Transform t in car.GetComponentsInChildren<Transform>())
             {
@@ -67,12 +74,33 @@ public class CarSpawnerAdvanced : MonoBehaviour
                     foreach (var mr in renderers)
                     {
                         mr.material = new Material(mr.material);
-                        mr.material.color = carColor;
+                        mr.material.color = nextCarColor;
                     }
                 }
             }
 
+            lastColor = nextCarColor;
+            if (isFirstCar) isFirstCar = false;
+            
             activeCars.Add(car);
         }
+    }
+
+    public bool WillNextCarRepeatColor()
+    {
+        if (isFirstCar || lastColor == default(Color)) return false;
+        
+        if (!isFirstCar && Random.value < repeatColorChance)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private bool ColorsAreSimilar(Color c1, Color c2, float tolerance = 0.01f)
+    {
+        return Mathf.Abs(c1.r - c2.r) < tolerance &&
+               Mathf.Abs(c1.g - c2.g) < tolerance &&
+               Mathf.Abs(c1.b - c2.b) < tolerance;
     }
 }

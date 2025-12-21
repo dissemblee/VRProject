@@ -10,8 +10,10 @@ public class IngredientSpawner : MonoBehaviour
     public Vector3 spawnAreaCenter;
     public Vector3 spawnAreaSize = new Vector3(5f, 0f, 5f);
 
-    [Header("Camera Reference")]
+    [Header("References")]
     public Camera mainCamera;
+    public Transform leftController; // Используем Transform
+    public Transform rightController;
 
     [Header("Rotation Settings")]
     public bool randomRotation = true;
@@ -26,8 +28,10 @@ public class IngredientSpawner : MonoBehaviour
         if (mainCamera == null)
         {
             mainCamera = Camera.main;
-            if (mainCamera == null) Debug.LogError("No main camera found in scene!");
+            if (mainCamera == null) Debug.LogWarning("No main camera found in scene!");
         }
+        
+        FindControllers();
 
         for (int i = 0; i < Mathf.Min(3, maxIngredients); i++)
         {
@@ -49,11 +53,47 @@ public class IngredientSpawner : MonoBehaviour
         
         CleanupDestroyedIngredients();
     }
+    
+    void FindControllers()
+    {
+        // Ищем по тегам
+        if (leftController == null)
+        {
+            GameObject leftObj = GameObject.FindGameObjectWithTag("LeftController");
+            if (leftObj != null) leftController = leftObj.transform;
+        }
+        
+        if (rightController == null)
+        {
+            GameObject rightObj = GameObject.FindGameObjectWithTag("RightController");
+            if (rightObj != null) rightController = rightObj.transform;
+        }
+        
+        // Ищем по имени если не нашли по тегам
+        if (leftController == null)
+        {
+            GameObject left = GameObject.Find("LeftHand Controller") ?? 
+                            GameObject.Find("Left Controller") ?? 
+                            GameObject.Find("Controller (left)") ??
+                            GameObject.Find("LeftHand") ??
+                            GameObject.Find("LeftHandAnchor");
+            if (left != null) leftController = left.transform;
+        }
+        
+        if (rightController == null)
+        {
+            GameObject right = GameObject.Find("RightHand Controller") ?? 
+                             GameObject.Find("Right Controller") ?? 
+                             GameObject.Find("Controller (right)") ??
+                            GameObject.Find("RightHand") ??
+                            GameObject.Find("RightHandAnchor");
+            if (right != null) rightController = right.transform;
+        }
+    }
 
     void SpawnIngredient()
     {
         if (spawnedIngredients.Count >= maxIngredients) return;
-
         if (ingredientPrefabs == null || ingredientPrefabs.Count == 0) return;
 
         GameObject prefabToSpawn = ingredientPrefabs[Random.Range(0, ingredientPrefabs.Count)];
@@ -82,7 +122,13 @@ public class IngredientSpawner : MonoBehaviour
         Grabable grabable = spawnedIngredient.GetComponent<Grabable>();
         if (grabable != null)
         {
-            grabable.mainCamera = mainCamera;
+            if (mainCamera != null)
+                grabable.mainCamera = mainCamera;
+            
+            if (leftController != null)
+                grabable.SetLeftController(leftController);
+            if (rightController != null)
+                grabable.SetRightController(rightController);
         }
 
         spawnedIngredients.Add(spawnedIngredient);
@@ -96,6 +142,7 @@ public class IngredientSpawner : MonoBehaviour
         }
     }
 
+    // Остальные методы остаются без изменений...
     public bool ForceSpawnIngredient()
     {
         if (spawnedIngredients.Count < maxIngredients)

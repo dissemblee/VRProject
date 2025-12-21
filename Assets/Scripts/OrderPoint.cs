@@ -18,13 +18,11 @@ public class OrderPoint : MonoBehaviour
     private List<OrderManager.PendingOrder> availableOrders = new List<OrderManager.PendingOrder>();
     private float lastUpdateTime = 0f;
     private const float updateInterval = 0.5f;
-    
     void Start()
     {
         SetActive(highlightObject, false);
         SetActive(interactionUI, false);
         SetActive(orderInfoUI, false);
-        
         if (OrderManager.Instance != null)
         {
             OrderManager.Instance.OnOrderReadyForPickup += OnOrderReadyForPickup;
@@ -126,7 +124,14 @@ public class OrderPoint : MonoBehaviour
             
             if (orderInfoText != null)
             {
-                orderInfoText.text = $"Заказ #{order.orderNumber} принят!";
+                if (order.isSpecialCar)
+                {
+                    orderInfoText.text = $"⚠️ ОСОБЫЙ заказ #{order.orderNumber} принят!";
+                }
+                else
+                {
+                    orderInfoText.text = $"Заказ #{order.orderNumber} принят!";
+                }
                 SetActive(orderInfoUI, true);
                 Invoke("HideOrderInfo", 2f);
             }

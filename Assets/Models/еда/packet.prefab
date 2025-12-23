@@ -68,6 +68,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -678588488315902003, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 6a751a55e543c454a85976c4124a5992, type: 2}
     - target: {fileID: 919132149155446097, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_Name
       value: packet
@@ -191,7 +195,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3215625734295464599}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f3cb7c4e6ef87724ebe6ac5a4ed76b2e, type: 3}
   m_Name: 
@@ -200,6 +204,8 @@ MonoBehaviour:
   rightController: {fileID: 0}
   grabDistance: 0.1
   throwForce: 1.5
+  grabButton: Fire1
+  throwButton: Fire2
   mainCamera: {fileID: 403612318749908846, guid: a12e87827762e754e9d311d7c739483e, type: 3}
   highlightMaterial: {fileID: 0}
 --- !u!114 &3205515022946720316

@@ -14,20 +14,82 @@ public class OrderPoint : MonoBehaviour
     public GameObject orderInfoUI;
     public Text orderInfoText;
     
+    [Header("Sound Settings")]
+    public AudioClip acceptOrderSound;
+    public AudioClip hoverSound;
+    public AudioClip errorSound;
+    private AudioSource audioSource;
+    
+    [Header("VR Settings")]
+    public bool useVRControls = false;
+    public string vrInteractButton = "XRI_Right_TriggerButton"; // Для XR Interaction Toolkit
+    public float vrInteractionDistance = 2f;
+    private Transform vrPlayer;
+    
     private bool playerInRange = false;
     private List<OrderManager.PendingOrder> availableOrders = new List<OrderManager.PendingOrder>();
     private float lastUpdateTime = 0f;
     private const float updateInterval = 0.5f;
+    private bool canInteract = true;
+    private float interactCooldown = 0.5f;
+    private float lastInteractTime = 0f;
+    
     void Start()
     {
+        // Настройка AudioSource
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+        
+        audioSource.spatialBlend = 0.8f; // 3D звук
+        audioSource.maxDistance = 10f;
+        
         SetActive(highlightObject, false);
         SetActive(interactionUI, false);
         SetActive(orderInfoUI, false);
+        
         if (OrderManager.Instance != null)
         {
             OrderManager.Instance.OnOrderReadyForPickup += OnOrderReadyForPickup;
             OrderManager.Instance.OnOrderAccepted += OnOrderAccepted;
             OrderManager.Instance.OnOrderCompleted += OnOrderCompleted;
+        }
+        
+        // Поиск VR игрока
+        FindVRPlayer();
+    }
+    
+    void FindVRPlayer()
+    {
+        if (useVRControls)
+        {
+            // Поиск VR камеры или контроллера
+            GameObject vrCamera = GameObject.Find("XR Origin")?.transform?.Find("Camera")?.gameObject;
+            if (vrCamera == null)
+                vrCamera = GameObject.Find("CenterEyeAnchor");
+            if (vrCamera == null)
+                vrCamera = GameObject.Find("Main Camera");
+            
+            if (vrCamera != null)
+            {
+                vrPlayer = vrCamera.transform;
+            }
+            
+            // Если не нашли, проверяем наличие XR компонентов
+            if (vrPlayer == null)
+            {
+                UnityEngine.XR.XRDisplaySubsystem display = GetComponent<UnityEngine.XR.XRDisplaySubsystem>();
+                if (display != null && display.running)
+                {
+                    useVRControls = true;
+                    vrPlayer = Camera.main?.transform;
+                }
+                else
+                {
+                    useVRControls = false;
+                    Debug.Log("VR не обнаружен, переключаемся на клавиатуру");
+                }
+            }
         }
     }
     
@@ -43,21 +105,92 @@ public class OrderPoint : MonoBehaviour
     
     void Update()
     {
+        // Проверка VR расстояния
+        if (useVRControls && vrPlayer != null)
+        {
+            float distance = Vector3.Distance(transform.position, vrPlayer.position);
+            bool wasInRange = playerInRange;
+            playerInRange = distance <= vrInteractionDistance;
+            
+            // Проиграть звук при приближении
+            if (!wasInRange && playerInRange && hoverSound != null)
+            {
+                PlaySound(hoverSound, 0.3f);
+            }
+        }
+        
         if (Time.time - lastUpdateTime > updateInterval && playerInRange)
         {
             UpdateAvailableOrders();
             lastUpdateTime = Time.time;
         }
         
-        if (playerInRange && Input.GetKeyDown(interactionKey)) 
+        // Проверка взаимодействия
+        if (playerInRange && canInteract && Time.time - lastInteractTime > interactCooldown)
         {
-            AcceptNextOrder();
+            if (useVRControls)
+            {
+                CheckVRInteraction();
+            }
+            else if (Input.GetKeyDown(interactionKey))
+            {
+                AcceptNextOrder();
+            }
+        }
+    }
+    
+    void CheckVRInteraction()
+    {
+        bool vrInput = false;
+        
+        // Проверка различных систем ввода VR
+        if (!string.IsNullOrEmpty(vrInteractButton))
+        {
+            // Для XR Interaction Toolkit
+            vrInput = Input.GetButtonDown(vrInteractButton);
+            
+            // Альтернативные контролы
+            if (!vrInput)
+            {
+                vrInput = Input.GetAxis("XRI_Right_Trigger") > 0.5f ||
+                         Input.GetKeyDown(KeyCode.JoystickButton0) || // A на Oculus
+                         Input.GetKeyDown(KeyCode.JoystickButton1) || // B на Oculus
+                         Input.GetKeyDown(KeyCode.JoystickButton2) || // X на Oculus
+                         Input.GetKeyDown(KeyCode.JoystickButton3);   // Y на Oculus
+            }
+        }
+        
+        if (vrInput)
+        {
+            // Проверка, смотрит ли игрок на объект (опционально)
+            if (vrPlayer != null)
+            {
+                Vector3 direction = (transform.position - vrPlayer.position).normalized;
+                float dot = Vector3.Dot(vrPlayer.forward, direction);
+                
+                if (dot > 0.7f) // Смотрит ли в сторону объекта
+                {
+                    AcceptNextOrder();
+                }
+                else
+                {
+                    // Проиграть звук ошибки
+                    if (errorSound != null)
+                    {
+                        PlaySound(errorSound, 0.2f);
+                    }
+                }
+            }
+            else
+            {
+                AcceptNextOrder();
+            }
         }
     }
     
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (!useVRControls && other.CompareTag("Player"))
         {
             playerInRange = true;
             SetActive(highlightObject, true);
@@ -65,12 +198,18 @@ public class OrderPoint : MonoBehaviour
             UpdateAvailableOrders();
             
             SetActive(interactionUI, true);
+            
+            // Проиграть звук при приближении
+            if (hoverSound != null)
+            {
+                PlaySound(hoverSound, 0.3f);
+            }
         }
     }
     
     void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player"))
+        if (!useVRControls && other.CompareTag("Player"))
         {
             playerInRange = false;
             SetActive(highlightObject, false);
@@ -116,11 +255,20 @@ public class OrderPoint : MonoBehaviour
     
     void AcceptNextOrder()
     {
+        if (!canInteract || Time.time - lastInteractTime < interactCooldown)
+            return;
+        
         if (OrderManager.Instance != null && availableOrders.Count > 0)
         {
             OrderManager.PendingOrder order = availableOrders[0];
             
             OrderManager.Instance.AcceptPendingOrder(order.orderNumber);
+            
+            // Проиграть звук принятия заказа
+            if (acceptOrderSound != null)
+            {
+                PlaySound(acceptOrderSound, 0.5f);
+            }
             
             if (orderInfoText != null)
             {
@@ -137,7 +285,25 @@ public class OrderPoint : MonoBehaviour
             }
             
             UpdateAvailableOrders();
+            
+            // КД на взаимодействие
+            lastInteractTime = Time.time;
+            canInteract = false;
+            Invoke("ResetInteract", interactCooldown);
         }
+        else
+        {
+            // Проиграть звук ошибки
+            if (errorSound != null)
+            {
+                PlaySound(errorSound, 0.2f);
+            }
+        }
+    }
+    
+    void ResetInteract()
+    {
+        canInteract = true;
     }
     
     void ShowOrderInfo()
@@ -149,7 +315,8 @@ public class OrderPoint : MonoBehaviour
             if (orderInfoText != null)
             {
                 OrderManager.PendingOrder order = availableOrders[0];
-                orderInfoText.text = $"Заказ #{order.orderNumber}\n{order.burgerCount} бургеров\nНажмите {interactionKey}";
+                string controlText = useVRControls ? "ТРИГГЕР" : interactionKey.ToString();
+                orderInfoText.text = $"Заказ #{order.orderNumber}\n{order.burgerCount} бургеров\nНажмите {controlText}";
             }
         }
     }
@@ -167,6 +334,14 @@ public class OrderPoint : MonoBehaviour
         if (obj != null) 
         {
             obj.SetActive(state);
+        }
+    }
+    
+    void PlaySound(AudioClip clip, float volume = 1f)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip, volume);
         }
     }
     
@@ -196,7 +371,8 @@ public class OrderPoint : MonoBehaviour
                 orderInfo.AppendLine("─────────────────────");
             }
             
-            orderInfo.AppendLine($"\n[E] - Принять первый заказ");
+            string controlText = useVRControls ? "ТРИГГЕР" : $"[{interactionKey}]";
+            orderInfo.AppendLine($"\n{controlText} - Принять первый заказ");
         }
         
         if (OrderManager.Instance != null && OrderManager.Instance.activeOrders.Count > 0)
@@ -275,7 +451,7 @@ public class OrderPoint : MonoBehaviour
             {
                 currentStyle = keyStyle;
             }
-            else if (line.Contains("[E]"))
+            else if (line.Contains("[E]") || line.Contains("ТРИГГЕР"))
             {
                 currentStyle = headerStyle;
             }
@@ -304,7 +480,8 @@ public class OrderPoint : MonoBehaviour
             hintStyle.normal.textColor = Color.green;
             hintStyle.alignment = TextAnchor.MiddleCenter;
             
-            GUI.Label(hintRect, $"[{interactionKey}] - ПРИНЯТЬ ЗАКАЗ", hintStyle);
+            string hintText = useVRControls ? "ТРИГГЕР - ПРИНЯТЬ ЗАКАЗ" : $"[{interactionKey}] - ПРИНЯТЬ ЗАКАЗ";
+            GUI.Label(hintRect, hintText, hintStyle);
         }
     }
     
@@ -317,5 +494,15 @@ public class OrderPoint : MonoBehaviour
         result.SetPixels(pix);
         result.Apply();
         return result;
+    }
+    
+    // Для VR можно добавить визуальную обратную связь
+    void OnDrawGizmos()
+    {
+        if (useVRControls)
+        {
+            Gizmos.color = playerInRange ? Color.green : Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, vrInteractionDistance);
+        }
     }
 }

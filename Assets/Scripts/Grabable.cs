@@ -4,14 +4,14 @@ using System.Collections;
 public class Grabable : MonoBehaviour
 {
     [Header("VR Settings")]
-    public Transform leftController; // Используем Transform вместо MonoBehaviour
+    public Transform leftController;
     public Transform rightController;
     public float grabDistance = 0.2f;
     public float throwForce = 1.5f;
     
     [Header("Input Settings")]
-    public string grabButton = "Fire1"; // Кнопка для захвата
-    public string throwButton = "Fire2"; // Кнопка для броска
+    public string grabButton = "Fire1";
+    public string throwButton = "Fire2";
     
     [Header("Legacy Camera Support")]
     public Camera mainCamera;
@@ -30,12 +30,10 @@ public class Grabable : MonoBehaviour
     private Ingredient ingredient;
     private Package package;
     
-    // Статические ссылки
     private static Transform staticLeftController;
     private static Transform staticRightController;
     private static bool controllersFound = false;
     
-    // Для определения какая рука схватила
     private enum ControllerHand { None, Left, Right }
     private ControllerHand currentHand = ControllerHand.None;
 
@@ -85,7 +83,6 @@ public class Grabable : MonoBehaviour
             }
         }
         
-        // Визуальная обратная связь при наведении
         UpdateHighlight();
     }
 
@@ -93,11 +90,9 @@ public class Grabable : MonoBehaviour
     {
         if (!isGrabbed)
         {
-            // Проверяем VR контроллеры
             CheckControllerForGrab(leftController, ControllerHand.Left);
             CheckControllerForGrab(rightController, ControllerHand.Right);
             
-            // Проверяем мышку
             if (Input.GetMouseButtonDown(0))
             {
                 TryMousePickUp();
@@ -158,7 +153,6 @@ public class Grabable : MonoBehaviour
             return;
         }
         
-        // Ищем все объекты с тегами контроллеров
         GameObject leftControllerObj = GameObject.FindGameObjectWithTag("LeftController");
         GameObject rightControllerObj = GameObject.FindGameObjectWithTag("RightController");
         
@@ -174,7 +168,6 @@ public class Grabable : MonoBehaviour
             staticRightController = rightController;
         }
         
-        // Альтернативный поиск по имени
         if (leftController == null)
         {
             GameObject left = GameObject.Find("LeftHand Controller") ?? 
@@ -210,10 +203,8 @@ public class Grabable : MonoBehaviour
     {
         if (controller == null) return;
         
-        // Проверяем дистанцию до контроллера
         float distance = Vector3.Distance(transform.position, controller.position);
         
-        // Проверяем нажатие кнопки
         bool isButtonPressed = CheckGrabButtonPressed(hand);
         
         if (isButtonPressed && distance <= grabDistance)
@@ -225,24 +216,21 @@ public class Grabable : MonoBehaviour
 
     private bool CheckGrabButtonPressed(ControllerHand hand)
     {
-        // Универсальная проверка кнопок
         switch (hand)
         {
             case ControllerHand.Left:
-                // Проверяем различные варианты ввода для левой руки
-                return Input.GetKeyDown(KeyCode.JoystickButton0) ||      // X/A button
-                       Input.GetKeyDown(KeyCode.JoystickButton2) ||      // Y/B button
-                       Input.GetAxis("LeftTrigger") > 0.5f ||           // Триггер
-                       Input.GetButtonDown("LeftGrab") ||               // Кастомная кнопка
-                       Input.GetMouseButtonDown(0);                     // Мышь для тестирования
+                return Input.GetKeyDown(KeyCode.JoystickButton0) ||
+                       Input.GetKeyDown(KeyCode.JoystickButton2) ||
+                       Input.GetAxis("LeftTrigger") > 0.5f ||      
+                       Input.GetButtonDown("LeftGrab") ||          
+                       Input.GetMouseButtonDown(0);                
             
             case ControllerHand.Right:
-                // Проверяем различные варианты ввода для правой руки
-                return Input.GetKeyDown(KeyCode.JoystickButton1) ||      // O/B button
-                       Input.GetKeyDown(KeyCode.JoystickButton3) ||      // Triangle/Y button
-                       Input.GetAxis("RightTrigger") > 0.5f ||          // Триггер
-                       Input.GetButtonDown("RightGrab") ||              // Кастомная кнопка
-                       Input.GetMouseButtonDown(1);                     // Правая кнопка мыши для тестирования
+                return Input.GetKeyDown(KeyCode.JoystickButton1) ||
+                       Input.GetKeyDown(KeyCode.JoystickButton3) ||
+                       Input.GetAxis("RightTrigger") > 0.5f ||     
+                       Input.GetButtonDown("RightGrab") ||         
+                       Input.GetMouseButtonDown(1);                
             
             default:
                 return false;
@@ -251,7 +239,6 @@ public class Grabable : MonoBehaviour
 
     private bool CheckGrabButtonReleased(ControllerHand hand)
     {
-        // Проверяем отпускание кнопки
         switch (hand)
         {
             case ControllerHand.Left:
@@ -284,7 +271,6 @@ public class Grabable : MonoBehaviour
             return;
         }
         
-        // Проверяем наведение от обоих контроллеров
         bool isHighlighted = false;
         
         if (leftController != null)
@@ -328,7 +314,6 @@ public class Grabable : MonoBehaviour
         if (package != null)
             package.SetGrabbed(true);
         
-        // Звук захвата
         PlayGrabSound();
         
         Debug.Log($"Object grabbed by {(controller == null ? "Mouse" : "VR Controller")}");
@@ -338,12 +323,10 @@ public class Grabable : MonoBehaviour
     {
         if (grabbingController == null) return;
         
-        // Плавное перемещение к контроллеру
         transform.position = Vector3.Lerp(transform.position, 
                                          grabbingController.position, 
                                          Time.deltaTime * 20f);
-        
-        // Плавный поворот
+
         transform.rotation = Quaternion.Slerp(transform.rotation, 
                                             grabbingController.rotation, 
                                             Time.deltaTime * 15f);
@@ -353,10 +336,8 @@ public class Grabable : MonoBehaviour
     {
         if (grabbingController == null) return;
         
-        // Проверяем отпускание кнопки для текущей руки
         bool shouldRelease = CheckGrabButtonReleased(currentHand);
         
-        // Проверяем кнопку броска
         bool shouldThrow = false;
         switch (currentHand)
         {
@@ -389,9 +370,10 @@ public class Grabable : MonoBehaviour
             rb.isKinematic = false;
             rb.useGravity = true;
             
-            // Добавляем инерцию от движения
-            Vector3 velocity = (transform.position - previousPosition) / Time.deltaTime;
-            rb.linearVelocity = velocity * 0.5f;
+            // Vector3 velocity = (transform.position - previousPosition) / Time.deltaTime;
+            // rb.linearVelocity = velocity * 0.5f;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
         
         if (objectRenderer != null && originalMaterial != null)
@@ -412,15 +394,12 @@ public class Grabable : MonoBehaviour
     {
         if (grabbingController == null || rb == null) return;
         
-        // Вычисляем скорость движения контроллера
         Vector3 velocity = (transform.position - previousPosition) / Time.deltaTime;
         
-        Release(); // Сначала отпускаем
+        Release();
         
-        // Применяем силу броска
         rb.AddForce(velocity * throwForce, ForceMode.Impulse);
         
-        // Добавляем случайное вращение
         rb.AddTorque(Random.insideUnitSphere * throwForce * 0.3f, ForceMode.Impulse);
     }
 
@@ -433,7 +412,6 @@ public class Grabable : MonoBehaviour
         }
     }
 
-    // Публичные методы
     public void SetMainCamera(Camera camera)
     {
         mainCamera = camera;

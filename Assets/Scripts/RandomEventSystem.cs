@@ -161,7 +161,7 @@ public class RandomEventSystem : MonoBehaviour
     
     private void TriggerCutsceneEvent()
     {
-      Debug.Log("Новая машина будет того же цвета, что и предыдущая!");
+      Debug.Log("Проигрыш");
     }
     
     public void RegisterSafeZone(SafeZone zone)

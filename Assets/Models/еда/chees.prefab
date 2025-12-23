@@ -10,15 +10,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.25
+      value: 25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.25
+      value: 25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.25
+      value: 25
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_LocalPosition.x
@@ -100,6 +100,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.y
       value: 0.162
       objectReference: {fileID: 0}
+    - target: {fileID: -1461304994638716399, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: d98cb6589216b844bb48804be684e983, type: 2}
     - target: {fileID: -1025663018108745142, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_Name
       value: "\u0432\u0435\u0440\u0445\u043D\u044F\u044F \u0431\u0443\u043B\u043E\u0447\u043A\u0430"
@@ -115,6 +119,18 @@ PrefabInstance:
     - target: {fileID: 3316992658331686828, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0.173
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083501151425157549, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
+      propertyPath: m_LocalScale.x
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083501151425157549, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
+      propertyPath: m_LocalScale.y
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4083501151425157549, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
+      propertyPath: m_LocalScale.z
+      value: -0.02
       objectReference: {fileID: 0}
     - target: {fileID: 4083501151425157549, guid: 3ccbb095adc1f2a459b94c26b035b223, type: 3}
       propertyPath: m_LocalPosition.y
@@ -196,7 +212,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3cb7c4e6ef87724ebe6ac5a4ed76b2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Grabable
+  leftController: {fileID: 0}
+  rightController: {fileID: 0}
+  grabDistance: 0.2
+  throwForce: 1.5
+  grabButton: Fire1
+  throwButton: Fire2
   mainCamera: {fileID: 403612318749908846, guid: a12e87827762e754e9d311d7c739483e, type: 3}
+  highlightMaterial: {fileID: 0}
 --- !u!54 &-4057381946260244615
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -243,5 +266,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.5073419, y: 0.15529987, z: 2.3989305}
-  m_Center: {x: -0.09929347, y: -0.029788248, z: 0.008011639}
+  m_Size: {x: 0.027461376, y: 0.0056693126, z: 0.02526448}
+  m_Center: {x: -0.00021522521, y: -0.0022681165, z: -0.00048646092}

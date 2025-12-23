@@ -17,6 +17,7 @@ public class BurgerAssemblyPoint : MonoBehaviour
         Ingredient ingredient = other.GetComponent<Ingredient>();
         if (ingredient == null) return;
         if (ingredient.IsGrabbed) return;
+        ingredient.transform.localScale = new Vector3(9f, 9f, 9f);
 
         currentBurger.AddIngredient(ingredient);
 
